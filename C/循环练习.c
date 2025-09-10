@@ -111,11 +111,11 @@ int diamond(int n, char c)
         {
             for(j=n/2+1-i;j>0;j--)
             {
-                printf(" ");
+                printf("\t");
             }
             for(j=1;j<=2*i-1;j++)
             {
-                printf("%c",c);
+                printf("%c\t",c);
             }
             printf("\n");
         }
@@ -123,15 +123,16 @@ int diamond(int n, char c)
         {
             for(j=1;j<=i-n/2-1;j++)
             {
-                printf(" ");
+                printf("\t");
             }
             for(j=1;j<=2*(n-i)+1;j++)
             {
-                printf("%c",c);
+                printf("%c\t",c);
             }
             printf("\n");
         }
-    }
+    };
+    return 0;
 };
 int main(void)
 {
