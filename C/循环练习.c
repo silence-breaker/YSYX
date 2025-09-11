@@ -96,6 +96,7 @@ int main(void)
     return 0;
 }
 */
+/*
 int diamond(int n, char c)
 {
     int i,j;
@@ -143,3 +144,4 @@ int main(void)
     diamond(n,c);
     return 0;
 }
+*/
