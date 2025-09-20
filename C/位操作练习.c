@@ -47,6 +47,8 @@ unsigned int rotate_right(unsigned int x, int n)
 
 int main(void)
 {
+    int a[12]={0};
+    char b[]="helloword";
     unsigned int x = 0x87654321;
     unsigned int y = 0x87654321;
     int n = 4;
@@ -58,5 +60,11 @@ int main(void)
     y = x ^ y;
     x = x ^ y;
     printf("x=%x,y=%x\n", x, y);
+    printf("sizeof(a)=%lu,sizeof(b)=%lu\n", sizeof(a), sizeof(b));
+    int i = 0;
+    unsigned int sum = 0x0;
+    for (i = 0; i < 16; i++)
+	sum = sum + (1U<<i);
+    printf("sum=%u\n", sum);
     return 0;
 }
