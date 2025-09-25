@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stddef.h>
+#include <stdlib.h>
 
-
+/*
 char* strcpy(char *dest, char *src)
 {
     int i = 0;
@@ -63,4 +64,14 @@ int main(void)
     shrink_space(processed,article,sizeof(article));
     printf("%s\n",processed);
     return 0;
+}
+*/
+int main(void)
+{
+    int i = 1;
+    while(1)
+    {
+        int *p = malloc(i);
+        i = 2*i;
+    }
 }
