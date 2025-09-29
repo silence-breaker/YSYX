@@ -180,7 +180,7 @@ int main(void)
     return 0;
 }
 */
-
+/*
 #include <string.h>
 
 char *strtok(char *str, const char *delim)
@@ -283,5 +283,36 @@ int main(void)
     while ((token = strtok_r(NULL, "&",&saveptr)) != NULL) {
         printf("%s\n",token);
     }
+    return 0;
+}
+*/
+/*
+int main(void)
+{
+    FILE *fp = fopen("递归","r");
+    if(fp==NULL)
+    {
+        perror("fopen");
+        exit(EXIT_FAILURE);
+    }
+    int i = 0;
+    for(i=0;i<100;i++)
+    {
+        int a = fgetc(fp);
+        if(a==EOF)  
+            break;
+        printf("%d",a);
+    }
+    printf("\n");
+   
+    fclose(fp);
+    return 0;
+}
+*/
+#include <stdlib.h>
+int main(void)
+{
+    char a = getchar();
+    putchar(a);
     return 0;
 }
