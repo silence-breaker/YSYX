@@ -5,7 +5,7 @@
 typedef struct node *link;
 struct node {
 	unsigned char item;
-	link next;
+	link prev,next;
 };
 
 extern link make_node(unsigned char item);

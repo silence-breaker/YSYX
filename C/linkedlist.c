@@ -9,6 +9,7 @@ link make_node(unsigned char item)
 	link p = malloc(sizeof *p);
 	p->item = item;
 	p->next = NULL;
+	p->prev = NULL;
 	return p;
 }
 
@@ -29,11 +30,17 @@ link search(unsigned char key)
 void insert(link p)
 {
 	p->next = head;
+	if(head)
+	{
+		head->prev = p;
+	}
 	head = p;
+	p->prev = NULL;
 }
 
 void delete(link p)
 {
+	/*
 	link pre;
 	if (p == head) {
 		head = p->next;
@@ -44,8 +51,20 @@ void delete(link p)
 			pre->next = p->next;
 			return;
 		}
+	*/
+	if(p->prev)
+	{
+		p->prev->next = p->next;
+	}
+	else
+	{
+		head = p->next;
+	}
+	if(p->next)
+	{
+		p->next->prev = p->prev;
+	}
 }
-
 void traverse(void (*visit)(link))
 {
 	link p;
