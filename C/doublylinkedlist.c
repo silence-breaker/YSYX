@@ -6,8 +6,8 @@ struct node tailsentinel;
 struct node headsentinel = {0, NULL, &tailsentinel};
 struct node tailsentinel = {0, &headsentinel, NULL};
 
-static link head = &headsentinel;
-static link tail = &tailsentinel;
+link head = &headsentinel;  // 移除static，使其可以被外部访问
+link tail = &tailsentinel;  // 移除static，使其可以被外部访问
 
 link make_node(unsigned char item)
 {

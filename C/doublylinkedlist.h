@@ -18,4 +18,8 @@ void destroy(void);
 void enqueue(link p);
 link dequeue(void);
 
+/* 导出head和tail供外部访问 */
+extern link head;
+extern link tail;
+
 #endif
