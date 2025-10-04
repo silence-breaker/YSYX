@@ -34,7 +34,7 @@ int main(void)
 	return 0;
 }
 */
-
+/*
 // Josephus问题
 int main(void)
 {
@@ -85,6 +85,8 @@ int main(void)
 
 	return 0;
 }
+*/
+
 
 	
 	
