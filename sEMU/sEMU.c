@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 //采用uint8_t来表示ISA中的指令和PC，这是固定的8位无符号整数（相当于最高位不是作为符号位）
 uint8_t PC = 0;//ISA层面中PC位宽为4位, 但C语言中不存在4位的基础数据类型
 uint8_t R[4];//GPR有4个寄存器
@@ -57,8 +58,13 @@ void inst_cycle(){
 }
 
 //初始化指令内存，加载指令
-int main(int n){
-    M[0] = 0b10001010;
+int main(int argc, char *argv[]){
+    uint8_t n = 0;
+    if(argc > 1) {
+        n = atoi(argv[1]);
+    }
+    M[0] = 0b10000000 | n;
+    //M[0] = 0b10001010;
     M[1] = 0b10010000;
     M[2] = 0b10100000;
     M[3] = 0b10110001;
@@ -67,9 +73,10 @@ int main(int n){
     M[6] = 0b11010001;
     M[7] = 0b01000010;
     M[8] = 0b11011111;
+   
     while(1){
         inst_cycle();
-        printf("当前PC值为%d\n",PC);
+        
         
         
 
