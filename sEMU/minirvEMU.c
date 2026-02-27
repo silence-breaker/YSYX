@@ -1,13 +1,17 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <am.h>
+#include <klib-macros.h>
+#include <stdbool.h> // 提供 bool 类型支持
 //模拟RV32I指令集
 typedef struct {
     uint32_t pc; //程序计数器
     uint32_t GPR[32]; //通用寄存器
-    uint8_t M[1024*512]; //按字节寻址的内存(512KB)
+    uint8_t M[700 * 1024]; //按字节寻址的内存(700KB)
+    uint8_t P[0x40000]; //外设寄存器空间(256KB)，落在[0x20000000, 0x20040000)的地址空间
 } RV32I_CPU;
-
+static bool running = true; //ebreak指令执行后设置为false，main函数根据这个标志退出循环
 //指令定义
 /*
 add, addi, lui, lw, lbu, sw, sb, jalr
@@ -53,18 +57,49 @@ void step(RV32I_CPU *cpu){
             {
                 int32_t imm = (int32_t)inst >> 20;
                 uint32_t addr = cpu->GPR[rs1] + imm;
-                if (funct3 == 0x2)      cpu->GPR[rd] = *(uint32_t *)&cpu->M[addr]; // LW 
-                else if (funct3 == 0x4) cpu->GPR[rd] = cpu->M[addr];               // LBU 
+                if (funct3 == 0x2){
+                        if(addr < sizeof(cpu->M)) {
+                            cpu->GPR[rd] = *(uint32_t *)&cpu->M[addr]; // LW 从内存空间加载
+                        }
+                        else {
+                            printf("错误：访问地址 0x%08X 超出范围！\n", addr);
+                            running = false; // 停止模拟器
+                        }
+                }       
+                else if (funct3 == 0x4) {
+                    if(addr < sizeof(cpu->M)) {
+                        cpu->GPR[rd] = cpu->M[addr]; // LBU 从内存空间加载
+                    }
+                    else {
+                        printf("错误：访问地址 0x%08X 超出范围！\n", addr);
+                        running = false; // 停止模拟器
+                    }
             }
             break;
-
+        }
         case 0x23: // STORE (SW, SB)
             {
+                //只有SB是能写入外设区域的，SW只能写入内存区域
                 // S-Type 立即数被拆分在 inst[31:25] 和 inst[11:7] 
                 int32_t imm = ((int32_t)(inst & 0xFE000000) >> 20) | ((inst >> 7) & 0x1F);
                 uint32_t addr = cpu->GPR[rs1] + imm;
-                if (funct3 == 0x2)      *(uint32_t *)&cpu->M[addr] = cpu->GPR[rs2]; // SW 
-                else if (funct3 == 0x0) cpu->M[addr] = cpu->GPR[rs2] & 0xFF;        // SB 
+                if (funct3 == 0x2){
+                    if(addr >= 0x20000000 && addr < 0x20040000) {
+                        *(uint32_t *)&cpu->P[addr-0x20000000] = cpu->GPR[rs2];// SW 存储到外设寄存器空间
+                    }
+                    else if(addr < sizeof(cpu->M)) *(uint32_t *)&cpu->M[addr] = cpu->GPR[rs2]; // SW存储到内存空间
+                    else {
+                        printf("错误：存储地址 0x%08X 超出范围！\n", addr);
+                        running = false; // 停止模拟器
+                    }
+                }  
+                else if (funct3 == 0x0) {
+                    if(addr < sizeof(cpu->M)) cpu->M[addr] = cpu->GPR[rs2] & 0xFF; // SB 存储到内存空间
+                    else {
+                        printf("错误：存储地址 0x%08X 超出范围！\n", addr);
+                        running = false; // 停止模拟器
+                    }
+                }
             }
             break;
 
@@ -87,7 +122,8 @@ void step(RV32I_CPU *cpu){
                 // 在这里你可以设置一个标志位让 main 函数退出循环
                 if(cpu->GPR[rs1] == 0) {
                     printf("EBREAK: 程序正常结束。\n");
-                    exit(0); // 正常退出
+                    running = false;
+                    break; // 正常退出
                 } else {
                     printf("EBREAK: 程序异常结束，寄存器 x%d 的值为 %d\n", rs1, cpu->GPR[rs1]);
                     exit(1); // 异常退出
@@ -117,29 +153,48 @@ void load_bin(RV32I_CPU *cpu, const char *filename) {
     // 参数含义：目标地址，每个单元大小(byte)，最大读取数量，文件指针
     size_t size = fread(cpu->M, 1, sizeof(cpu->M), file);
     //ebreak的指令是0x00100073，按照小端存储在内存中就是0x73 0x00 0x10 0x00（倒过来）
-    cpu->M[0x1218] = 0x73;
-    cpu->M[0x1219] = 0x00;
-    cpu->M[0x121A] = 0x10;
-    cpu->M[0x121B] = 0x00;
+    cpu->M[0xdb0] = 0x73;
+    cpu->M[0xdb1] = 0x00;
+    cpu->M[0xdb2] = 0x10;
+    cpu->M[0xdb3] = 0x00;
     printf("成功加载 %zu 字节到内存。\n", size);
     fclose(file);
 }
 
-int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        printf("使用方法: %s <filename.bin>\n", argv[0]);
+void draw(uint8_t *P) {
+  uint32_t* color = (uint32_t *)P;
+  int row_draw = 256;
+  int col_draw = 256;
+  
+  for(int y = 0; y < row_draw; y++) {
+    // 一次性画出一整行（256个像素）
+    // 参数：坐标(0, y)，数据源当前行指针，宽256，高1
+    io_write(AM_GPU_FBDRAW, 0, y, &color[y * col_draw], col_draw, 1, false);
+  }
+  io_write(AM_GPU_FBDRAW, 0, 0, NULL, 0, 0, true); // 刷入屏幕
+}
+
+int main(const char *args) {
+    // 检查是否传入了参数（args 为空指针或空字符串）
+    if (args == NULL || args[0] == '\0') {
+        printf("使用方法: 请通过 mainargs 传入 bin 文件路径\n");
         return 1;
     }
-
-    RV32I_CPU cpu = {0}; // 初始化 CPU，PC=0, GPR全0
-    load_bin(&cpu, argv[1]); // 加载你指定的 bin 文件
+    // 初始化 CPU，PC=0, GPR全0 
+    //使用static变量，把数据存储到数据段（栈空间太小）
+    static RV32I_CPU cpu = {0}; 
+    ioe_init(); // 初始化外设接口
+    load_bin(&cpu, args); // 加载你指定的 bin 文件
 
     // 运行模拟器
-    while (1) {
+    while (running) {
         step(&cpu);
         // 这里可以加上打印寄存器状态的逻辑，方便调试
-        if (cpu.pc >= 1024*512) break; // 简单防止越界
+
     }
+    printf("程序执行结束，接下来加载图像到窗口\n");
+    draw(cpu.P); // 从外设寄存器空间加载图像数据到窗口
+    while(1); // 保持窗口打开
     return 0;
 }
 
